@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use Illuminate\Http\Request;
+use App\Http\Requests\StoreExpenseRequest;
+use App\Http\Requests\UpdateExpenseRequest;
 
 class ExpenseController extends Controller
 {
@@ -19,9 +21,13 @@ class ExpenseController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreExpenseRequest $request)
     {
-        //
+        $validated = $request->validated();
+        $validated['user_id'] = 1; //have to change after sanctum auth is added
+        $expense = Expense::create($validated);
+
+        return response()->json(['data' => $expense], 201);
     }
 
     /**
@@ -29,15 +35,17 @@ class ExpenseController extends Controller
      */
     public function show(Expense $expense)
     {
-        //
+        return response()->json(['data' => $expense]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Expense $expense)
+    public function update(UpdateExpenseRequest $request, Expense $expense)
     {
-        //
+        $expense->update($request->validated());
+        
+        return response()->json(['data'=> $expense]);
     }
 
     /**
@@ -45,6 +53,8 @@ class ExpenseController extends Controller
      */
     public function destroy(Expense $expense)
     {
-        //
+        $expense->delete();
+
+        return response()->json(['message' => 'Expense deleted successfully.']);
     }
 }
