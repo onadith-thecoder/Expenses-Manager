@@ -6,6 +6,7 @@ use App\Models\Expense;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
+use App\Http\Resources\ExpenseResource;
 
 class ExpenseController extends Controller
 {
@@ -15,7 +16,7 @@ class ExpenseController extends Controller
     public function index()
     {
         $expenses = Expense::orderBy('date', 'desc')->get();
-        return response()->json(['data' => $expenses]);
+        return ExpenseResource::collection($expenses);
     }
 
     /**
@@ -27,7 +28,7 @@ class ExpenseController extends Controller
         $validated['user_id'] = 1; //have to change after sanctum auth is added
         $expense = Expense::create($validated);
 
-        return response()->json(['data' => $expense], 201);
+         return (new ExpenseResource($expense))->response()->setStatusCode(201);
     }
 
     /**
@@ -35,7 +36,7 @@ class ExpenseController extends Controller
      */
     public function show(Expense $expense)
     {
-        return response()->json(['data' => $expense]);
+        return new ExpenseResource($expense);
     }
 
     /**
@@ -45,7 +46,7 @@ class ExpenseController extends Controller
     {
         $expense->update($request->validated());
         
-        return response()->json(['data'=> $expense]);
+        return new ExpenseResource($expense);
     }
 
     /**
