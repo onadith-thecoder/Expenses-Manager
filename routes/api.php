@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\ExpenseController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
-Route::apiResource('expenses', ExpenseController::class);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::apiResource('expenses', ExpenseController::class);
+});

@@ -15,7 +15,10 @@ class ExpenseController extends Controller
      */
     public function index()
     {
-        $expenses = Expense::orderBy('date', 'desc')->get();
+        $expenses = Expense::where('user_id', auth()->id())
+        ->orderBy('date', 'desc')
+        ->get();
+
         return ExpenseResource::collection($expenses);
     }
 
@@ -25,7 +28,7 @@ class ExpenseController extends Controller
     public function store(StoreExpenseRequest $request)
     {
         $validated = $request->validated();
-        $validated['user_id'] = 1; //have to change after sanctum auth is added
+        $validated['user_id'] = auth()->id();
         $expense = Expense::create($validated);
 
          return (new ExpenseResource($expense))->response()->setStatusCode(201);
