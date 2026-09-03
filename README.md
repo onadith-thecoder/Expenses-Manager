@@ -1,58 +1,89 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Expenses Manager
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A full-stack personal expense tracking application, built as a REST API backend (Laravel + Sanctum) paired with a separate React single-page application frontend.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+**Backend:** Laravel 11, Sanctum (token authentication), PHPUnit
+**Frontend:** React (Vite), Tailwind CSS, React Router, Vitest + React Testing Library
+**Database:** MySQL
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Architecture
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+This project is a clean separation between backend and frontend:
+- The root of this repository is a Laravel REST API — no Blade views, JSON only.
+- `/frontend` is a completely separate React SPA that communicates with the API over HTTP.
 
-## Learning Laravel
+This separation was a deliberate choice to demonstrate backend and frontend competencies independently.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Features
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- Full CRUD for expense records (create, view, edit, delete)
+- User registration, login, and logout using Sanctum token authentication
+- Expenses are scoped per-user — each user only sees and manages their own records
+- Policy-based authorization: a user attempting to view/edit/delete another user's expense receives a 403 Forbidden
+- Server-side validation matching the OpenAPI specification
+- Dark/light theme toggle, persisted across sessions
+- 18 automated backend tests (PHPUnit) covering auth, CRUD, validation, and authorization
+- Automated frontend component tests (Vitest + React Testing Library)
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Known Deviations from the Original Specification
 
-## Agentic Development
+Documented in full in `openapi.json`:
+1. `expense_type` was expanded from 3 categories (`travel`, `food`, `other`) to 5 (`education`, `travel`, `food`, `utility`, `other`).
+2. Authentication (Sanctum) was added, which was not part of the original specification, to support per-user data ownership.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Setup Instructions
 
-```bash
-composer require laravel/boost --dev
+### Backend (Laravel API)
 
-php artisan boost:install
-```
+\`\`\`bash
+composer install
+cp .env.example .env
+php artisan key:generate
+\`\`\`
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Update `.env` with your database credentials, then:
 
-## Contributing
+\`\`\`bash
+php artisan migrate
+php artisan serve
+\`\`\`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+The API will be available at the URL Laravel reports (or via Laragon's virtual host, e.g. `http://expenses-manager.test`).
 
-## Code of Conduct
+### Frontend (React SPA)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+\`\`\`bash
+cd frontend
+npm install
+\`\`\`
 
-## Security Vulnerabilities
+Create a `.env` file inside `/frontend`:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+\`\`\`
+VITE_API_BASE_URL=http://expenses-manager.test/api
+\`\`\`
 
-## License
+\`\`\`bash
+npm run dev
+\`\`\`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The app will be available at `http://localhost:5173`.
+
+## Running Tests
+
+**Backend:**
+\`\`\`bash
+php artisan test
+\`\`\`
+
+**Frontend:**
+\`\`\`bash
+cd frontend
+npm test
+\`\`\`
+
+## API Documentation
+
+Full API specification is documented in [`openapi.json`](./openapi.json), including all endpoints, request/response schemas, and authentication requirements. This file can be imported directly into Postman or any compatible viewer.
