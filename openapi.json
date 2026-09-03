@@ -1,0 +1,218 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Expenses Manager API",
+    "description": "A RESTful API for managing personal expenses, built with Laravel 11 and secured with Laravel Sanctum token authentication. Expenses are scoped to the authenticated user — each user can only view, edit, or delete their own records.\n\n**Deviation from original spec:** the `expense_type` field was expanded from three categories (`travel`, `food`, `other`) to five (`education`, `travel`, `food`, `utility`, `other`), to better reflect realistic personal expense tracking. This is reflected in the `Expense` and `ExpenseInput` schemas below.\n\n**Addition beyond original spec:** authentication using Laravel Sanctum was added. All `/expenses` endpoints require a valid Bearer token, obtained via `/register` or `/login`. This was not part of the original specification, and was added to support per-user data ownership and policy-based authorization.",
+    "version": "1.1.0",
+    "contact": {
+      "name": "Expenses Manager",
+      "url": "https://github.com/onadith-thecoder/expenses-manager"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://expenses-manager.test/api",
+      "description": "Local development server (Laragon)"
+    }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Registration, login, and logout using Sanctum token authentication" },
+    { "name": "Expenses", "description": "Operations for managing expense records, scoped to the authenticated user" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Sanctum Personal Access Token",
+        "description": "Token returned from /register or /login. Send as 'Authorization: Bearer <token>' on every protected request."
+      }
+    },
+    "schemas": {
+      "Expense": {
+        "type": "object",
+        "description": "A single expense record as returned by the API. user_id is intentionally not exposed — ownership is enforced server-side via the authenticated request, not a client-visible field.",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "date": { "type": "string", "format": "date", "example": "2026-08-01" },
+          "cost": { "type": "number", "format": "float", "description": "Cost in Sri Lankan Rupees (LKR).", "example": 1500.00 },
+          "description": { "type": "string", "example": "Bus ticket to Colombo for client meeting" },
+          "expense_type": {
+            "type": "string",
+            "description": "Deviation from original spec: expanded from 3 to 5 categories.",
+            "enum": ["education", "travel", "food", "utility", "other"],
+            "example": "travel"
+          },
+          "created_at": { "type": "string", "format": "date-time", "example": "2026-08-01T10:00:00.000000Z" }
+        },
+        "required": ["id", "date", "cost", "description", "expense_type", "created_at"]
+      },
+      "ExpenseInput": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "cost": { "type": "number", "format": "float", "minimum": 0 },
+          "description": { "type": "string", "minLength": 3, "maxLength": 500 },
+          "expense_type": {
+            "type": "string",
+            "enum": ["education", "travel", "food", "utility", "other"]
+          }
+        },
+        "required": ["date", "cost", "description", "expense_type"]
+      },
+      "RegisterInput": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "example": "Venuka Onadith" },
+          "email": { "type": "string", "format": "email", "example": "venuka@example.com" },
+          "password": { "type": "string", "minLength": 8, "example": "password123" },
+          "password_confirmation": { "type": "string", "example": "password123" }
+        },
+        "required": ["name", "email", "password", "password_confirmation"]
+      },
+      "LoginInput": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        },
+        "required": ["email", "password"]
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" },
+              "email": { "type": "string" }
+            }
+          },
+          "token": { "type": "string", "example": "1|8aUmblu9p5TW6tirEwbzWjsrywn0bP4WhWdxEo2R95804c48" }
+        }
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string" },
+          "errors": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } }
+        }
+      },
+      "NotFoundError": {
+        "type": "object",
+        "properties": { "message": { "type": "string" } }
+      }
+    }
+  },
+  "paths": {
+    "/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterInput" } } }
+        },
+        "responses": {
+          "201": { "description": "User created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } } },
+          "422": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationError" } } } }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Log in and receive a token",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginInput" } } }
+        },
+        "responses": {
+          "200": { "description": "Login successful", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } } },
+          "422": { "description": "Invalid credentials", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationError" } } } }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Revoke the current token",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Logged out successfully" },
+          "401": { "description": "Unauthenticated" }
+        }
+      }
+    },
+    "/expenses": {
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "List the authenticated user's expenses",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of the authenticated user's expenses, ordered by date descending",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Expense" } } } } } }
+          },
+          "401": { "description": "Unauthenticated" }
+        }
+      },
+      "post": {
+        "tags": ["Expenses"],
+        "summary": "Create a new expense for the authenticated user",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExpenseInput" } } }
+        },
+        "responses": {
+          "201": { "description": "Created", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Expense" } } } } } },
+          "401": { "description": "Unauthenticated" },
+          "422": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationError" } } } }
+        }
+      }
+    },
+    "/expenses/{id}": {
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+      "get": {
+        "tags": ["Expenses"],
+        "summary": "Get a single expense (owner only)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Found", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Expense" } } } } } },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Forbidden — expense belongs to another user" },
+          "404": { "description": "Not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NotFoundError" } } } }
+        }
+      },
+      "put": {
+        "tags": ["Expenses"],
+        "summary": "Update an expense (owner only)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExpenseInput" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Expense" } } } } } },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Forbidden — expense belongs to another user" },
+          "404": { "description": "Not found" },
+          "422": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValidationError" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["Expenses"],
+        "summary": "Delete an expense (owner only)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Deleted" },
+          "401": { "description": "Unauthenticated" },
+          "403": { "description": "Forbidden — expense belongs to another user" },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  }
+}
